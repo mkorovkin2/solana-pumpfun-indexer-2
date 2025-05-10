@@ -3,7 +3,6 @@ package indexer
 import (
 	"context"
 	"log"
-	"os"
 	"time"
 
 	"solana-token-indexer/internal/db"
@@ -14,7 +13,7 @@ import (
 )
 
 func FetchAndStoreTransactions(mint string) {
-	rpcURL := os.Getenv("SOLANA_RPC_URL")
+	rpcURL := "https://empty-shy-firefly.solana-mainnet.quiknode.pro/c4bfcace1a0705be0dc5eb8db3d772d3aecc8331/" // "https://mainnet.helius-rpc.com/?api-key=52885135-1ca1-4e4f-afdc-b12f69d25380" // os.Getenv("SOLANA_RPC_URL")
 	if rpcURL == "" {
 		rpcURL = rpc.MainNetBeta_RPC
 		log.Println("[indexer] WARNING: SOLANA_RPC_URL environment variable not set. Using default public RPC. This may lead to rate limiting.")
@@ -25,7 +24,7 @@ func FetchAndStoreTransactions(mint string) {
 
 	// Rate limiter: 8 requests per second (1 request every 125ms)
 	// You can change this if you want; I have this to stay in Helius free tier
-	rateLimit := time.Second / 8
+	rateLimit := time.Second / 2
 	ticker := time.NewTicker(rateLimit)
 	defer ticker.Stop()
 
@@ -63,8 +62,9 @@ func FetchAndStoreTransactions(mint string) {
 				context.Background(),
 				sigInfo.Signature,
 				&rpc.GetTransactionOpts{
-					Encoding:   solana.EncodingBase64,
-					Commitment: rpc.CommitmentFinalized,
+					Encoding:                       solana.EncodingBase64,
+					Commitment:                     rpc.CommitmentFinalized,
+					MaxSupportedTransactionVersion: func() *uint64 { v := uint64(0); return &v }(),
 				},
 			)
 			if err != nil || txResult == nil || txResult.Transaction == nil {
