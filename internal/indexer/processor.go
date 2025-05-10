@@ -3,6 +3,7 @@ package indexer
 import (
 	"context"
 	"log"
+	"os"
 	"time"
 
 	"solana-token-indexer/internal/db"
@@ -13,7 +14,14 @@ import (
 )
 
 func FetchAndStoreTransactions(mint string) {
-	rpcClient := rpc.New(rpc.MainNetBeta_RPC) 
+	rpcURL := os.Getenv("SOLANA_RPC_URL")
+	if rpcURL == "" {
+		rpcURL = rpc.MainNetBeta_RPC
+		log.Println("[indexer] WARNING: SOLANA_RPC_URL environment variable not set. Using default public RPC. This may lead to rate limiting.")
+	} else {
+		log.Printf("[indexer] Using custom RPC URL: %s", rpcURL)
+	}
+	rpcClient := rpc.New(rpcURL) 
 
 	mintPK, err := solana.PublicKeyFromBase58(mint)
 	if err != nil {

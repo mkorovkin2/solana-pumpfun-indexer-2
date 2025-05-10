@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Configuration
-DB_NAME="solana"
+DB_NAME="solana_index"
 TEST_MINT="So11111111111111111111111111111111111111112" # Solana (SOL) mint address
 # TEST_MINT="EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzL7DKnvLKeekH" # Example for a smaller token (USDC on devnet, adjust if needed for mainnet)
 SERVER_LOG="server.log"
