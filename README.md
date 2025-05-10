@@ -52,3 +52,13 @@ CREATE TABLE IF NOT EXISTS token_transactions (
   token_mint TEXT
 );
 ```
+
+### To get your RPC endpoint
+
+* set one on [Helius](https://www.helius.dev/)
+* then set your `SOLANA_RPC_URL` environment variable to the endpoint you get from Helius
+
+### Testing
+
+* run `./test_local_run.sh`
+

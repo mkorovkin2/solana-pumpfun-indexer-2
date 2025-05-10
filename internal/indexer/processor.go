@@ -21,7 +21,13 @@ func FetchAndStoreTransactions(mint string) {
 	} else {
 		log.Printf("[indexer] Using custom RPC URL: %s", rpcURL)
 	}
-	rpcClient := rpc.New(rpcURL) 
+	rpcClient := rpc.New(rpcURL)
+
+	// Rate limiter: 8 requests per second (1 request every 125ms)
+	// You can change this if you want; I have this to stay in Helius free tier
+	rateLimit := time.Second / 8
+	ticker := time.NewTicker(rateLimit)
+	defer ticker.Stop()
 
 	mintPK, err := solana.PublicKeyFromBase58(mint)
 	if err != nil {
@@ -29,6 +35,7 @@ func FetchAndStoreTransactions(mint string) {
 		return
 	}
 
+	<-ticker.C // Wait for ticker before making RPC call
 	accountsResult, err := rpcClient.GetTokenLargestAccounts(
 		context.Background(),
 		mintPK,
@@ -40,9 +47,10 @@ func FetchAndStoreTransactions(mint string) {
 	}
 
 	for _, acctPair := range accountsResult.Value {
+		<-ticker.C // Wait for ticker before making RPC call
 		sigsResult, err := rpcClient.GetSignaturesForAddress(
 			context.Background(),
-			acctPair.Address, 
+			acctPair.Address,
 		)
 		if err != nil {
 			log.Printf("[rpc] GetSignaturesForAddress for account %s failed: %v", acctPair.Address.String(), err)
@@ -50,15 +58,16 @@ func FetchAndStoreTransactions(mint string) {
 		}
 
 		for _, sigInfo := range sigsResult {
+			<-ticker.C // Wait for ticker before making RPC call
 			txResult, err := rpcClient.GetTransaction(
 				context.Background(),
-				sigInfo.Signature, 
+				sigInfo.Signature,
 				&rpc.GetTransactionOpts{
-					Encoding:   solana.EncodingBase64, 
+					Encoding:   solana.EncodingBase64,
 					Commitment: rpc.CommitmentFinalized,
 				},
 			)
-			if err != nil || txResult == nil || txResult.Transaction == nil { 
+			if err != nil || txResult == nil || txResult.Transaction == nil {
 				log.Printf("[rpc] GetTransaction for sig %s failed or tx/tx.Transaction is nil: %v", sigInfo.Signature.String(), err)
 				continue
 			}
@@ -68,7 +77,7 @@ func FetchAndStoreTransactions(mint string) {
 				log.Printf("[rpc] Failed to decode transaction for sig %s: %v", sigInfo.Signature.String(), err)
 				continue
 			}
-			if decodedTx == nil { 
+			if decodedTx == nil {
 				log.Printf("[rpc] Decoded transaction is nil for sig %s", sigInfo.Signature.String())
 				continue
 			}
@@ -84,7 +93,7 @@ func FetchAndStoreTransactions(mint string) {
 					continue
 				}
 
-				if len(inst.Accounts) < 2 { 
+				if len(inst.Accounts) < 2 {
 					continue
 				}
 				srcPK := decodedTx.Message.AccountKeys[inst.Accounts[0]]
